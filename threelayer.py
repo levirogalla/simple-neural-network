@@ -84,7 +84,7 @@ for i, data in enumerate(TRAIN):
     weights23 = calcNewWeight(cost32, weights23)
 
     # pass val2 or layer 3 into this?
-    betterLayer2 = relu((weights23.T())*(val2))
+    betterLayer2 = relu((weights23.T())*(Vector(val2)))
     cost21 = calcCost(layer2, betterLayer2)
 
     weights12 = calcNewWeight(cost21, weights12)
