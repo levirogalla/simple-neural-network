@@ -93,10 +93,12 @@ class Network:
                 )
                 self.layers[i] = Vector()
 
-    def run(self, input: Vector) -> Vector:
+    def run(self, input: Vector, logToFile=None | str) -> Vector:
         output: int
         lastLayer = len(self.layers) - 1
 
+        if logToFile is not None:
+            file = open(logToFile, "a")
         for layer in self.layers:
             if layer == 0:
                 self.layers[layer] = input
@@ -109,6 +111,14 @@ class Network:
                 self.layers[layer] = relu(
                     calcLayer(self.layers[layer - 1], self.weights[layer])
                 )
+            if logToFile is not None:
+                if layer != 0:
+                    file.write(f"{self.weights[layer]}")
+                file.write(f"{self.layers[layer]}")
+
+        if logToFile is not None:
+            file.write("\n\n")
+            file.close()
 
         return output
 
@@ -119,7 +129,7 @@ class Network:
             nextLayer = relu(calcLayer(betterLayer, self.weights[layerIndex].T()))
             self.__backProp(nextLayer, layerIndex - 1)
 
-    def train(self, trainingData: list[Vector, Vector], delay=0):
+    def train(self, trainingData: list[Vector, Vector], delay=0, logToFile=None | str):
         layers = len(self.layers)
         accuracy = 0
         training = tqdm(trainingData)
@@ -127,7 +137,7 @@ class Network:
             input = data[0]
 
             expectedOutput = data[1]
-            self.run(input)
+            self.run(input, logToFile=logToFile)
 
             # back propigation using for loop
             betterLayer = expectedOutput
