@@ -36,7 +36,7 @@ all negative too so the cost of layer2 to betterlayer2 is 0 so no change is apli
 
 ### Solutions
 
-Switch to leaky relu funtion
+Switch to leaky relu funtion. Tested works far better.
 Switch to sigmoid funtion
 Add training rate multiplier
 
@@ -86,9 +86,10 @@ However if that first layer had 100 nodes, each weight will still be changed x a
 
 ### Solutions
 
-Adjust each wait by dividng the adjustment by the amount of nodes
+Adjust each weights by dividng the adjustment by the amount of nodes
 
 Adjusting each weight based on the signifigance of the weight i.e how much the weight affected the nodes value
+If so, put emphasis on bigger weight or smaller weights?
 
 ### Testing results
 

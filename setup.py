@@ -3,7 +3,7 @@ import random
 from tqdm import tqdm
 from math import sin
 
-ITERATIONS = 5000
+ITERATIONS = 20
 MAXAGRESSION = 1
 INITWEIGHT = 1
 
@@ -37,6 +37,10 @@ def fourth(x):
     return (x**4) + x**3 - 7 * x + 5
 
 
+def fifth(x):
+    return (x**5) + x**4 - 7 * x + 5
+
+
 def h(x):
     return [1, 2]
 
@@ -48,7 +52,7 @@ def createData(iterations):
     data = []
     for x in tqdm(range(iterations)):
         if x:
-            data.append([Vector(x), Vector(linear(x))])
+            data.append([Vector(x), Vector(second(x))])
     return Matrix(*data)
 
 

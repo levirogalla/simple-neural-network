@@ -3,8 +3,31 @@ from setup import TRAIN, MAXAGRESSION, getRandom
 import math
 
 
+def calcAccuracy(output: Vector, expectedOutput: Vector):
+    expected = abs(expectedOutput)
+    out = abs(output)
+    accuracy = 100 * (1 - ((abs(expected - out)) / ((expected) if expected else 1)))
+    return accuracy
+
+
 class ThreeLayer:
+    def __init__(self) -> None:
+        self.layer1 = Vector()
+        self.weights12 = Matrix([getRandom()], [getRandom()])
+        self.layer2 = Vector()
+        self.weights23 = Matrix([getRandom(), getRandom()])
+        self.layer3 = Vector()
+
     print("Training network")
+
+    def leakyrelu(activation: Vector) -> Vector:
+        newActivation = []
+        for val in activation:
+            if val < 0:
+                newActivation.append(val * 0.01)
+            else:
+                newActivation.append(val)
+        return Vector(*newActivation)
 
     def relu(activation: Vector) -> Vector:
         newActivation = []
@@ -26,7 +49,7 @@ class ThreeLayer:
         newVector = weights * layer
         return newVector
 
-    def calcCost(activation: Vector, expected: Vector) -> dict[Vector, Vector]:
+    def calcCostVector(activation: Vector, expected: Vector) -> dict[Vector, Vector]:
         costVal = []
         costDer = []
 
@@ -40,6 +63,14 @@ class ThreeLayer:
 
         return {"value": Vector(*costVal), "derivative": Vector(*costDer)}
 
+    def calcCostVal(val: int, expected: int) -> dict[int, int]:
+        cost = {}
+        cost["value"] = (
+            ((val - expected) ** 2) / expected if expected else ((val - expected) ** 2)
+        )
+        cost["derivative"] = (val - expected) * 2
+        return cost
+
     def calcNewWeight(cost: Vector, weights: Matrix) -> Matrix:
         newWeights = []
 
@@ -48,9 +79,15 @@ class ThreeLayer:
             if cost["derivative"][r] == 0:
                 return Matrix(*weights)
             change = (cost["value"][r]) / (cost["derivative"][r]) * MAXAGRESSION
+            signifiganceBasedOnNodes = 1 / len(row)
             for weight in row:
-                signifigance = weight / abs()
-                newRow.append((weight - (change)))
+                totalWeight1 = abs(row)
+                # totalWeight2 = sum of all weights in row
+
+                signifiganceBasedOnWeight = (
+                    (weight / totalWeight1) if totalWeight1 else 1
+                )
+                newRow.append((weight - (change * signifiganceBasedOnNodes)))
             newWeights.append(newRow)
 
         return Matrix(*newWeights)
@@ -61,49 +98,137 @@ class ThreeLayer:
         agression = totalCost / costDer if costDer else 0.00001
         return agression**2 if abs(agression) < MAXAGRESSION else MAXAGRESSION
 
-    # one node
-    layer1 = Vector()
-    weights12 = Matrix(
-        [getRandom()], [getRandom()], [getRandom()], [getRandom()], [getRandom()]
-    )
-    # two nodes
-    layer2 = Vector()
-    weights23 = Matrix(
-        [getRandom(), getRandom(), getRandom(), getRandom(), getRandom()]
-    )
-    # one node
-    layer3 = Vector()
+    # returns how much the weight should be changed based on how far the resulting value was from the expected
+    # parameters are the row index, the max change, and the expected value
 
-    file = open("data/data2.txt", "w")
-    for i, data in enumerate(TRAIN):
-        val1 = data[0]
-        val2 = data[1]
+    def calcSpecificWeightErrorContribution(outputContribution, expectedOutput):
+        diff = outputContribution - expectedOutput
+        adjustmentFactor = (-1 / (diff**2 + 1)) + 1
+        return adjustmentFactor
 
-        layer1 = val1
-        file.write(f"{layer1}")
-        file.write(f"{weights12}")
+    def calcChange(cost: dict, multipliers: float = 1):
+        maxChange = (
+            ((cost["value"] / cost["derivative"]) * multipliers)
+            if cost["derivative"] != 0
+            else 0
+        )
+        return maxChange
 
-        layer2 = relu(calcLayer(layer1, weights12))
-        file.write(f"{layer2}")
-        file.write(f"{weights23}")
+    def backProp(self, finalExpected: Vector):
+        for r, val in enumerate(self.layer3):
+            expectedVal = finalExpected[r]
+            cost = ThreeLayer.calcCostVal(val, expectedVal)
+            weightSignifigance = 1 / len(self.weights23[r])
+            maxChange = ThreeLayer.calcChange(cost, weightSignifigance)
 
-        layer3 = calcLayer(layer2, weights23)
-        file.write(f"{layer3}\n\n")
+            for c, weight in enumerate(self.weights23[r]):
+                outputContribution = weight * self.layer2[c]
+                changeAdjustmentFactor = ThreeLayer.calcSpecificWeightErrorContribution(
+                    outputContribution, expectedVal
+                )
+                change = maxChange * changeAdjustmentFactor
+                self.weights23[r][c] = weight - change
+                print(self.weights23[r][c])
 
-        cost32 = calcCost(layer3, val2)
+        betterLayer2 = ThreeLayer.relu(self.weights23.T() * finalExpected)
 
-        weights23 = calcNewWeight(cost32, weights23)
+        for r, val in enumerate(self.layer2):
+            expectedVal = betterLayer2[r]
+            cost = ThreeLayer.calcCostVal(val, expectedVal)
+            weightSignifigance = 1 / len(self.weights12[r])
+            maxChange = ThreeLayer.calcChange(cost, weightSignifigance)
 
-        # pass val2 or layer 3 into this?
-        betterLayer2 = relu(calcLayer(val2, weights23.T()))
-        cost21 = calcCost(layer2, betterLayer2)
+            for c, weight in enumerate(self.weights12[r]):
+                outputContribution = weight * self.layer1[c]
+                changeAdjustmentFactor = ThreeLayer.calcSpecificWeightErrorContribution(
+                    outputContribution, expectedVal
+                )
+                change = maxChange * changeAdjustmentFactor
+                self.weights12[r][c] = weight - change
+                print(self.weights12[r][c])
 
-        weights12 = calcNewWeight(cost21, weights12)
+    def train(self):
+        file = open("data/data2.txt", "w")
+        for i, data in enumerate(TRAIN):
+            val1 = data[0]
+            val2 = data[1]
 
-    print(f"Final test: {layer1}")
-    print(f"Weights from 1 to 2: {weights12}")
-    print(f"Layer 2: {layer2}")
-    print(f"Weights from 2 to 3: {weights23}")
-    print(f"Final output: {layer3}")
+            self.layer1 = val1
+            file.write(f"{self.layer1}")
+            file.write(f"{self.weights12}")
 
-    file.close()
+            self.layer2 = ThreeLayer.relu(
+                ThreeLayer.calcLayer(self.layer1, self.weights12)
+            )
+            file.write(f"{self.layer2}")
+            file.write(f"{self.weights23}")
+
+            self.layer3 = ThreeLayer.calcLayer(self.layer2, self.weights23)
+            file.write(f"{self.layer3}\n\n")
+
+            newWeights = []
+            for r, val in enumerate(self.layer3):
+                newRow = []
+                expectedVal = val2[r]
+                cost = ThreeLayer.calcCostVal(val, expectedVal)
+                weightSignifigance = 1 / len(self.weights23[r])
+                maxChange = (
+                    (
+                        (cost["value"] / cost["derivative"])
+                    )  # <- goes in the bracket* weightSignifigance
+                    if cost["derivative"] != 0
+                    else 0
+                )
+
+                for c, weight in enumerate(self.weights23[r]):
+                    outputContribution = weight * self.layer2[c]
+                    changeAdjustmentFactor = (
+                        ThreeLayer.calcSpecificWeightErrorContribution(
+                            outputContribution, expectedVal
+                        )
+                    )
+                    change = maxChange * changeAdjustmentFactor
+                    newWeight = weight - change
+                    newRow.append(newWeight)
+                newWeights.append(newRow)
+
+            self.weights23 = Matrix(*newWeights)
+
+            betterLayer2 = ThreeLayer.relu(self.weights23.T() * val2)
+
+            newWeights = []
+            for r, val in enumerate(self.layer2):
+                newRow = []
+                expectedVal = betterLayer2[r]
+                cost = ThreeLayer.calcCostVal(val, expectedVal)
+                weightSignifigance = 1 / len(self.weights12[r])
+                maxChange = (
+                    (
+                        (cost["value"] / cost["derivative"])
+                    )  # <- goes in the bracket* weightSignifigance
+                    if cost["derivative"] != 0
+                    else 0
+                )
+
+                for c, weight in enumerate(self.weights12[r]):
+                    outputContribution = weight * self.layer1[c]
+                    changeAdjustmentFactor = (
+                        ThreeLayer.calcSpecificWeightErrorContribution(
+                            outputContribution, expectedVal
+                        )
+                    )
+                    change = maxChange * changeAdjustmentFactor
+                    newWeight = weight - change
+                    newRow.append(newWeight)
+                newWeights.append(newRow)
+            self.weights12 = Matrix(*newWeights)
+
+        accuracy = calcAccuracy(self.layer3, val2)
+        print(f"New: {accuracy}")
+        file.close()
+        return accuracy
+        # print(f"Final test: {self.layer1}")
+        # print(f"Weights from 1 to 2: {self.weights12}")
+        # print(f"Layer 2: {self.layer2}")
+        # print(f"Weights from 2 to 3: {self.weights23}")
+        # print(f"Final output: {self.layer3}")
