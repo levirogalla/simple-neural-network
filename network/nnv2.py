@@ -1,6 +1,6 @@
 from Python_Linear_Algebra.main import Matrix, Vector
 from setup import MAXAGRESSION
-from network.helper.functions import Activation, Tested, getRandom
+from network.helper.functions import Activation, Tested
 from tqdm import tqdm
 import time
 
@@ -11,54 +11,78 @@ import math, random
 class HelperFuntion:
     def calcCostVal(val: int, expected: int) -> dict[int, int]:
         cost = {}
-        cost["value"] = (
-            ((val - expected) ** 2) / expected if expected else ((val - expected) ** 2)
-        )
+        cost["value"] = (val - expected) ** 2  # note: took away divide by expected
         cost["derivative"] = (val - expected) * 2
         return cost
+
+    def calcSpecificWeightErrorContribution(
+        outputContribution, expectedOutput
+    ) -> float:
+        diff = outputContribution - expectedOutput
+        adjustmentFactor = (-1 / (diff**2 + 1)) + 1
+        return adjustmentFactor
+
+    def calcChange(cost: dict, multipliers: float = 1) -> float:
+        maxChange = (
+            ((cost["value"] / cost["derivative"]) * multipliers)
+            if cost["derivative"] != 0
+            else 0
+        )
+        return maxChange
 
 
 class Network:
     # will take in tuple with amount of nodes for each layer
-    def __init__(self, setup: tuple, randomWeightRange: int):
-        self.layers = {}
-        self.weights = {}
+    def __init__(self, setup: tuple, randomWeightRange: int, activation: str):
+        self.layers: list[Vector] = []
+        self.weights: list[Matrix] = []  # Matrix([2], [5]), Matrix([-1, 2])
         for i, layer in enumerate(setup):
             if i == 0:
-                self.layers[0] = Vector()
+                self.layers.append(Vector())
             else:
-                self.weights[i] = Matrix(
-                    *[
-                        [getRandom(randomWeightRange) for _ in range(setup[i - 1])]
-                        for _ in range(layer)
-                    ]
+                self.weights.append(
+                    Matrix(
+                        *[
+                            [
+                                Tested.getRandom(randomWeightRange)
+                                for _ in range(setup[i - 1])
+                            ]
+                            for _ in range(layer)
+                        ]
+                    )
                 )
-                self.layers[i] = Vector()
+                self.layers.append(Vector())
 
-    def run(self, input: Vector, logToFile=None | str) -> Vector:
-        output: int
-        lastLayer = len(self.layers) - 1
+        if activation == "relu":
+            self.activation = Activation.relu
+        if activation == "leakyrelu":
+            self.activation = Activation.leakyrelu
+        if activation == "sigmoid":
+            self.activation = Activation.sigmoid
 
+    def run(self, input: Vector, logToFile: str = None) -> Vector:
+        output: Vector
+        lastLayerIndex = len(self.layers) - 1
         if logToFile is not None:
             file = open(logToFile, "a")
-        for layer in self.layers:
-            if layer == 0:
-                self.layers[layer] = input
-            elif layer == lastLayer:
-                self.layers[layer] = Tested.calcLayer(
-                    self.layers[layer - 1], self.weights[layer]
+        for i, layer in enumerate(self.layers):
+            if i == 0:
+                self.layers[i] = input
+            elif i == lastLayerIndex:
+                self.layers[i] = Tested.calcLayer(
+                    self.layers[i - 1], self.weights[i - 1]
                 )
-                output = self.layers[layer]
+                output = self.layers[i]
 
             # condition for hidden layers
             else:
-                self.layers[layer] = Activation.relu(
-                    Tested.calcLayer(self.layers[layer - 1], self.weights[layer])
+                self.layers[i] = self.activation(
+                    Tested.calcLayer(self.layers[i - 1], self.weights[i - 1])
                 )
             if logToFile is not None:
-                if layer != 0:
-                    file.write(f"{self.weights[layer]}")
-                file.write(f"{self.layers[layer]}")
+                file.write(f"{self.layers[i]}")
+                if i != lastLayerIndex:
+                    file.write(f"{self.weights[i]}")
 
         if logToFile is not None:
             file.write("\n\n")
@@ -66,56 +90,84 @@ class Network:
 
         return output
 
-    def __backProp(self, betterLayer: Vector, layerIndex: int):
-        cost = Tested.calcCost(self.layers[layerIndex], betterLayer)
-        self.weights[layerIndex] = Tested.calcNewWeight(cost, self.weights[layerIndex])
-        if layerIndex != 1:
-            nextLayer = Activation.relu(
-                Tested.calcLayer(betterLayer, self.weights[layerIndex].T())
-            )
-            self.__backProp(nextLayer, layerIndex - 1)
+    def backProp(
+        self,
+        finalExpected: Vector,
+        useBasicWeightSignifigance: bool,
+        agression: float = 1,
+    ):
+        layers = len(self.layers)
+        betterLayer = finalExpected
+        for layerI, _ in enumerate(self.layers):
+            # needs to go through the indexs backwards
+            layerIndex = layers - layerI - 1
+
+            if layerIndex != 0:
+                for r, val in enumerate(self.layers[layerIndex]):
+                    expectedVal = betterLayer[r]
+                    cost = HelperFuntion.calcCostVal(val, expectedVal)
+                    weightSignifigance = (
+                        1 / len(self.weights[layerIndex - 1][r])
+                        if useBasicWeightSignifigance
+                        else 1
+                    )
+
+                    maxChange = (
+                        (
+                            (HelperFuntion.calcChange(cost, weightSignifigance))
+                            / (sum(self.layers[layerIndex - 1]) + 0.001)
+                        )
+                        if self.layers[layerIndex - 1] != 0
+                        else 0
+                    )  # normalizes cost by dividing by the sum (or abs?)
+
+                    for c, weight in enumerate(self.weights[layerIndex - 1][r]):
+                        outputContribution = weight * self.layers[layerIndex - 1][c]
+                        changeAdjustmentFactor = (
+                            HelperFuntion.calcSpecificWeightErrorContribution(
+                                outputContribution, expectedVal
+                            )
+                        )
+                        change = maxChange * changeAdjustmentFactor * agression
+                        self.weights[layerIndex - 1][r, c] = weight - change
+
+                reversedWeights = self.weights[layerIndex - 1].inverse()
+                betterLayer = self.activation(reversedWeights * betterLayer)
 
     def train(
         self,
         trainingData: list[Vector, Vector],
-        delay=0,
-        logToFile=None | str,
-        stopAt=None | tuple[int, int],
+        delay=0,  # adds a delay to the end of each training cycle
+        logToFile: str = None,  # if the weights and activations should be logges to a file every training iterations
+        stopAt: tuple[
+            int, int
+        ] = None,  # what accuracy the network should stop at, first index is accurcy val and second is percision
+        progressBar: bool = False,  # whether or not to use a progress bar when training
+        useBasicWeightSignifigance: bool = False,  # this is used for back prop to limit the amount a weight can be changed based on how many nodes there are
+        agression: float = 1,
     ):
         layers = len(self.layers)
         accuracy = 0
+        trainingData: tqdm
 
         if logToFile is not None:
             # clears file
             open(logToFile, "w").close()
 
-        training = tqdm(trainingData)
-        for data in training:
+        if progressBar:
+            trainingData = tqdm(trainingData)
+
+        for data in trainingData:
             input = data[0]
             expectedOutput = data[1]
             self.run(input, logToFile=logToFile)
 
             # back propigation using for loop
-            betterLayer = expectedOutput
-            for layerI, _ in enumerate(self.layers):
-                # needs to go through the indexs backwards
-                layerIndex = layers - layerI - 1
-
-                if layerIndex != 0:
-                    cost = Tested.calcCost(self.layers[layerIndex], betterLayer)
-                    self.weights[layerIndex] = Tested.calcNewWeight(
-                        cost, self.weights[layerIndex]
-                    )
-                    nextLayer = Activation.relu(
-                        Tested.calcLayer(betterLayer, self.weights[layerIndex].T())
-                    )
-                    betterLayer = nextLayer
-
-            # back propigation using recursive funtion
-            # self.__backProp(expectedOutput, layers - 1)
+            self.backProp(expectedOutput, useBasicWeightSignifigance, agression)
 
             accuracy = Tested.calcAccuracy(self.layers[layers - 1], expectedOutput)
-            training.set_postfix({"Accuracy": accuracy})
+            if progressBar:
+                trainingData.set_postfix({"Accuracy": accuracy})
 
             # checks stop at first so accuracy isnt rounded every time
             if stopAt is not None:
@@ -124,3 +176,5 @@ class Network:
 
             if delay:
                 time.sleep(delay)
+
+        return accuracy

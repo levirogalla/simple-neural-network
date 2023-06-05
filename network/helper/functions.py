@@ -25,14 +25,14 @@ class Activation:
     def sigmoid(activation: Vector) -> Vector:
         newActivation = []
         for val in activation:
-            newVal = 1 / (1 + math.exp(-1 * val))
+            newVal = 1 / (1 + math.exp(-val))
             newActivation.append(newVal)
         return Vector(*newActivation)
 
 
 class Tested:
-    def getRandom(weight):
-        randomNum = random.randint(-weight, weight)
+    def getRandom(weight=10):
+        randomNum = random.randint(0, weight)
         if randomNum:
             return randomNum
         else:

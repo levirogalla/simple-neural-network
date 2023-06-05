@@ -3,22 +3,48 @@ import random
 from tqdm import tqdm
 from math import sin
 
-ITERATIONS = 20
+ITERATIONS = 1000
 MAXAGRESSION = 1
 INITWEIGHT = 1
-
-
-def getRandom(weight=10):
-    randomNum = random.randint(-weight, weight)
-
-    if randomNum:
-        return randomNum
-    else:
-        return getRandom(weight)
-
-
-def f(x):
-    return (3 * (x**2) - 15) + 2**x
+REPEATS = 1
+TestTRAIN = Matrix(
+    [Vector(1), Vector(1)],
+    [Vector(2), Vector(4)],
+    [Vector(1), Vector(1)],
+    [Vector(3), Vector(9)],
+    [Vector(1), Vector(1)],
+    [Vector(2), Vector(4)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+    [Vector(3), Vector(9)],
+    [Vector(3), Vector(9)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+    [Vector(2), Vector(4)],
+    [Vector(1), Vector(1)],
+    [Vector(3), Vector(9)],
+    [Vector(1), Vector(1)],
+    [Vector(2), Vector(4)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+    [Vector(3), Vector(9)],
+    [Vector(3), Vector(9)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+    [Vector(2), Vector(4)],
+    [Vector(1), Vector(1)],
+    [Vector(3), Vector(9)],
+    [Vector(1), Vector(1)],
+    [Vector(2), Vector(4)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+    [Vector(3), Vector(9)],
+    [Vector(3), Vector(9)],
+    [Vector(1), Vector(1)],
+    [Vector(1), Vector(1)],
+)
 
 
 def linear(x):
@@ -26,11 +52,11 @@ def linear(x):
 
 
 def third(x):
-    return (x**3) + x**2 + 5 * x
+    return x**3
 
 
 def second(x):
-    return (x**2) + x * 2 + 5
+    return x**2
 
 
 def fourth(x):
@@ -42,20 +68,28 @@ def fifth(x):
 
 
 def h(x):
-    return [1, 2]
+    return [Vector(1), Vector(2)]
+
+
+def root(x):
+    return (abs(x)) ** 0.5
 
 
 print("Creating training data")
 
 
-def createData(iterations):
+def createData(iterations, repeats, shuffle=True):
     data = []
-    for x in tqdm(range(iterations)):
+    for x in tqdm(range(int(iterations))):
         if x:
-            data.append([Vector(x), Vector(second(x))])
+            for _ in range(repeats):
+                # data.append([Vector(x), Vector(root(x))])
+                data.append(h(x))
+    if shuffle:
+        random.shuffle(data)
     return Matrix(*data)
 
 
-TRAIN = createData(ITERATIONS)
+TRAIN = createData(ITERATIONS, REPEATS)
 
 print("Created training data")
