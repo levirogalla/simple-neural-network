@@ -48,6 +48,14 @@ class Tested:
         accuracy = 100 * (1 - ((abs(expected - out)) / ((expected) if expected else 1)))
         return accuracy
 
+    def flatten(inputImgae: list[list]):
+        "Takes in 2x2 array of number values and returns a flattened vector"
+        new = []
+        for row in inputImgae:
+            for val in row:
+                new.append(val)
+        return Vector(*new)
+
 
 class Testing:
     pass
