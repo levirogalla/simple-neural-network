@@ -35,7 +35,7 @@ class Network:
     # will take in tuple with amount of nodes for each layer
     def __init__(self, setup: tuple, randomWeightRange: int, activation: str):
         self.layers: list[Vector] = []
-        self.weights: list[Matrix] = []  # Matrix([2], [5]), Matrix([-1, 2])
+        self.weights: list[Matrix] = []
         for i, layer in enumerate(setup):
             if i == 0:
                 self.layers.append(Vector())
@@ -55,19 +55,27 @@ class Network:
 
         if activation == "relu":
             self.activation = Activation.relu
+            self.activationInverse = Activation.reluInverse
         if activation == "leakyrelu":
             self.activation = Activation.leakyrelu
+            self.activationInverse = Activation.leakyreluInverse
         if activation == "sigmoid":
             self.activation = Activation.sigmoid
+            self.activation = Activation.sigmoidInverse
 
     def run(self, input: Vector, logToFile: str = None) -> Vector:
         output: Vector
         lastLayerIndex = len(self.layers) - 1
         if logToFile is not None:
             file = open(logToFile, "a")
-        for i, layer in enumerate(self.layers):
+
+        # looping through layers in model object to calculate next layer
+        for i, _ in enumerate(self.layers):
+            # condition where the layer is the input layer
             if i == 0:
                 self.layers[i] = input
+
+            # condition where the layer is the output layer, doesnt apply actiavtion funtion to ouptu layer
             elif i == lastLayerIndex:
                 self.layers[i] = Tested.calcLayer(
                     self.layers[i - 1], self.weights[i - 1]
@@ -79,6 +87,8 @@ class Network:
                 self.layers[i] = self.activation(
                     Tested.calcLayer(self.layers[i - 1], self.weights[i - 1])
                 )
+
+            # writes all layeres and weight to a file, may change this to right to a pickle file in futer to perserve object when train is interupted
             if logToFile is not None:
                 file.write(f"{self.layers[i]}")
                 if i != lastLayerIndex:

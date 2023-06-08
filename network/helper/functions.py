@@ -13,6 +13,9 @@ class Activation:
                 newActivation.append(val)
         return Vector(*newActivation)
 
+    def reluInverse(activation: Vector) -> Vector:
+        return Activation.relu(activation)
+
     def leakyrelu(activation: Vector) -> Vector:
         newActivation = []
         for val in activation:
@@ -22,10 +25,26 @@ class Activation:
                 newActivation.append(val)
         return Vector(*newActivation)
 
+    def leakyreluInverse(activation: Vector) -> Vector:
+        newActivation = []
+        for val in activation:
+            if val < 0:
+                newActivation.append(val * 100)
+            else:
+                newActivation.append(val)
+        return Vector(*newActivation)
+
     def sigmoid(activation: Vector) -> Vector:
         newActivation = []
         for val in activation:
             newVal = 1 / (1 + math.exp(-val))
+            newActivation.append(newVal)
+        return Vector(*newActivation)
+
+    def sigmoidInverse(activation: Vector) -> Vector:
+        newActivation = []
+        for val in activation:
+            newVal = -1 * math.log((1 / val) - 1)
             newActivation.append(newVal)
         return Vector(*newActivation)
 

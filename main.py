@@ -7,7 +7,7 @@ from Python_Linear_Algebra.main import Matrix, Vector
 from tqdm import tqdm
 from setup import TRAIN
 
-
+print(TRAIN)
 # x = nnv2((1, 2, 1), 10, "leakyrelu")
 
 # x.train(
@@ -18,7 +18,7 @@ from setup import TRAIN
 # print(x.run(Vector(36)))
 # print(x.run(Vector(49)))
 
-print(Matrix([2.642, -1.442]).inverse())
+# print(Matrix([2.642, -1.442]).inverse())
 
 # run = True
 

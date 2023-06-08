@@ -78,18 +78,56 @@ def root(x):
 print("Creating training data")
 
 
-def createData(iterations, repeats, shuffle=True):
+def createData(
+    dataRange: tuple[int, int],
+    dataPoints: int,
+    reapets: int = 0,
+    shuffleData=True,
+    normaliseFactor: int = 1,
+) -> Vector:
+    "Function creates points evenly spaced based on inputs"
+
+    # make inputs for the funtion
     data = []
-    for x in tqdm(range(int(iterations))):
-        if x:
-            for _ in range(repeats):
-                # data.append([Vector(x), Vector(root(x))])
-                data.append(h(x))
-    if shuffle:
+    for _ in range(reapets):
+        for num in range(dataPoints):
+            dataInput = num
+
+            # squishes all numbers in input to be able to fit into given range
+            dataRangeFactor = dataPoints / (dataRange[1] - dataRange[0])
+            dataInput = dataInput / dataRangeFactor
+
+            # moves point so it is relative to starting point
+            dataInput = dataInput + dataRange[0]
+
+            # normalizes
+            dataInput = dataInput * (normaliseFactor)
+
+            # applies funtion to input to get out put
+            dataOutput = third(dataInput)
+
+            data.append([Vector(dataInput), Vector(dataOutput)])
+
+    # shuffels data
+    if shuffleData:
         random.shuffle(data)
-    return Matrix(*data)
+    return data
 
 
-TRAIN = createData(ITERATIONS, REPEATS)
+TRAIN = createData((0, 5), 5, 3, shuffleData=False)
+
+# def createData(iterations, repeats, shuffle=True):
+#     data = []
+#     for x in tqdm(range(int(iterations))):
+#         if x:
+#             for _ in range(repeats):
+#                 # data.append([Vector(x), Vector(root(x))])
+#                 data.append(h(x))
+#     if shuffle:
+#         random.shuffle(data)
+#     return Matrix(*data)
+
+
+# TRAIN = createData(ITERATIONS, REPEATS)
 
 print("Created training data")
