@@ -4,6 +4,9 @@ import random, math
 
 
 class Activation:
+    def linear(activation: Vector) -> Vector:
+        return activation
+
     def relu(activation: Vector) -> Vector:
         newActivation = []
         for val in activation:
@@ -44,7 +47,7 @@ class Activation:
     def sigmoidInverse(activation: Vector) -> Vector:
         newActivation = []
         for val in activation:
-            newVal = -1 * math.log((1 / val) - 1)
+            newVal = -1 * math.log((1 / (val)) - 1) if val < 1 and val > 0 else val
             newActivation.append(newVal)
         return Vector(*newActivation)
 
@@ -57,8 +60,8 @@ class Tested:
         else:
             return Tested.getRandom(weight)
 
-    def calcLayer(layer: Vector, weights: Matrix) -> Vector:
-        nextLayer = weights * layer
+    def calcLayer(layer: Vector, weights: Matrix, bias: Vector) -> Vector:
+        nextLayer = (weights * layer) + bias
         return nextLayer
 
     def calcAccuracy(output: Vector, expectedOutput: Vector):

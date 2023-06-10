@@ -104,7 +104,7 @@ def createData(
             dataInput = dataInput * (normaliseFactor)
 
             # applies funtion to input to get out put
-            dataOutput = third(dataInput)
+            dataOutput = linear(dataInput)
 
             data.append([Vector(dataInput), Vector(dataOutput)])
 
@@ -114,7 +114,7 @@ def createData(
     return data
 
 
-TRAIN = createData((0, 5), 5, 3, shuffleData=False)
+TRAIN = createData((1000, 1100), 150, 1, shuffleData=True)
 
 # def createData(iterations, repeats, shuffle=True):
 #     data = []

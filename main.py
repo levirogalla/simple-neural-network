@@ -7,16 +7,19 @@ from Python_Linear_Algebra.main import Matrix, Vector
 from tqdm import tqdm
 from setup import TRAIN
 
-print(TRAIN)
-# x = nnv2((1, 2, 1), 10, "leakyrelu")
+# x = nnv2((1, 2, 1), 10, "relu")
 
 # x.train(
-#     TRAIN, progressBar=True, logToFile="data/data4.txt", useBasicWeightSignifigance=True
+#     TRAIN,
+#     progressBar=True,
+#     logToFile="data/data4.txt",
+#     useBasicWeightSignifigance=False,
 # )
 
-# print(x.run(Vector(25)))
-# print(x.run(Vector(36)))
-# print(x.run(Vector(49)))
+# print(x.run(Vector(0)))
+# print(x.run(Vector(1)))
+# print(x.run(Vector(2)))
+
 
 # print(Matrix([2.642, -1.442]).inverse())
 
@@ -34,7 +37,7 @@ print(TRAIN)
 
 
 def Test():
-    TESTS = 1000
+    TESTS = 100
 
     accuracyTotalA = 0
     trainingTimeTotalA = 0
@@ -43,15 +46,15 @@ def Test():
     trainingTimeTotalB = 0
 
     for _ in tqdm(range(TESTS)):
-        x = nnv2((1, 20, 1), 10, "relu")
+        x = nnv2((1, 2, 1), 10, "relu")
         st = time.process_time_ns()
-        accuracyTotalA += x.train(TRAIN, useBasicWeightSignifigance=False)
+        accuracyTotalA += x.train(TRAIN, test=True)
         end = time.process_time_ns()
         trainingTimeTotalA += end - st
 
-        y = nnv2((1, 1, 1, 1, 1), 10, "relu")
+        y = nnv2((1, 2, 1), 10, "relu")
         st = time.process_time_ns()
-        accuracyTotalB += y.train(TRAIN, useBasicWeightSignifigance=True)
+        accuracyTotalB += y.train(TRAIN, test=False)
         end = time.process_time_ns()
         trainingTimeTotalB += end - st
 
@@ -61,3 +64,6 @@ def Test():
     print(
         f"\nAfter {TESTS} tests B has an avg accuracy of {accuracyTotalB/TESTS} and avg training time of {trainingTimeTotalB/TESTS}s\n"
     )
+
+
+Test()

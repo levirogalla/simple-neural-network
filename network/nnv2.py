@@ -11,15 +11,18 @@ import math, random
 class HelperFuntion:
     def calcCostVal(val: int, expected: int) -> dict[int, int]:
         cost = {}
-        cost["value"] = (val - expected) ** 2  # note: took away divide by expected
+        cost["value"] = (val - expected) ** 2
         cost["derivative"] = (val - expected) * 2
         return cost
 
-    def calcSpecificWeightErrorContribution(
-        outputContribution, expectedOutput
-    ) -> float:
-        diff = outputContribution - expectedOutput
-        adjustmentFactor = (-1 / (diff**2 + 1)) + 1
+    def positiveContribution(outputContribution, expectedOutput) -> float:
+        percentContribution = outputContribution - expectedOutput
+        adjustmentFactor = (-1 / ((percentContribution**2) + 1)) + 1
+        return adjustmentFactor
+
+    def negativeContribution(outputContribution, output) -> float:
+        percentContribution = outputContribution - output
+        adjustmentFactor = 1 / ((percentContribution**2) + 1)
         return adjustmentFactor
 
     def calcChange(cost: dict, multipliers: float = 1) -> float:
@@ -36,7 +39,8 @@ class Network:
     def __init__(self, setup: tuple, randomWeightRange: int, activation: str):
         self.layers: list[Vector] = []
         self.weights: list[Matrix] = []
-        for i, layer in enumerate(setup):
+        self.baiss: list[Vector] = []
+        for i, nodeAmount in enumerate(setup):
             if i == 0:
                 self.layers.append(Vector())
             else:
@@ -47,10 +51,11 @@ class Network:
                                 Tested.getRandom(randomWeightRange)
                                 for _ in range(setup[i - 1])
                             ]
-                            for _ in range(layer)
+                            for _ in range(nodeAmount)
                         ]
                     )
                 )
+                self.baiss.append(Vector(*[0 for _ in range(nodeAmount)]))
                 self.layers.append(Vector())
 
         if activation == "relu":
@@ -61,7 +66,10 @@ class Network:
             self.activationInverse = Activation.leakyreluInverse
         if activation == "sigmoid":
             self.activation = Activation.sigmoid
-            self.activation = Activation.sigmoidInverse
+            self.activationInverse = Activation.sigmoidInverse
+        if activation == "linear":
+            self.activation = Activation.linear
+            self.activationInverse = Activation.linear
 
     def run(self, input: Vector, logToFile: str = None) -> Vector:
         output: Vector
@@ -78,21 +86,28 @@ class Network:
             # condition where the layer is the output layer, doesnt apply actiavtion funtion to ouptu layer
             elif i == lastLayerIndex:
                 self.layers[i] = Tested.calcLayer(
-                    self.layers[i - 1], self.weights[i - 1]
+                    self.layers[i - 1], self.weights[i - 1], self.baiss[i - 1]
                 )
                 output = self.layers[i]
 
             # condition for hidden layers
             else:
                 self.layers[i] = self.activation(
-                    Tested.calcLayer(self.layers[i - 1], self.weights[i - 1])
+                    Tested.calcLayer(
+                        self.layers[i - 1], self.weights[i - 1], self.baiss[i - 1]
+                    )
                 )
 
             # writes all layeres and weight to a file, may change this to right to a pickle file in futer to perserve object when train is interupted
             if logToFile is not None:
-                file.write(f"{self.layers[i]}")
+                if i != 0:
+                    file.write(
+                        f"Weights before biases: {self.layers[i] - self.baiss[i-1]}\n"
+                    )
+                    file.write(f"Biases: {self.baiss[i-1]}\n")
+                file.write(f"Weights after Biases: {self.layers[i]}")
                 if i != lastLayerIndex:
-                    file.write(f"{self.weights[i]}")
+                    file.write(f"{self.weights[i-1]}")
 
         if logToFile is not None:
             file.write("\n\n")
@@ -105,44 +120,77 @@ class Network:
         finalExpected: Vector,
         useBasicWeightSignifigance: bool,
         agression: float = 1,
+        test=None,
     ):
         layers = len(self.layers)
+
+        # sets the last layer to the expected layer
         betterLayer = finalExpected
+
+        # needs to go through the indexs backwards
         for layerI, _ in enumerate(self.layers):
-            # needs to go through the indexs backwards
             layerIndex = layers - layerI - 1
 
+            # loops through all activations of all layers that is not the input layer
             if layerIndex != 0:
                 for r, val in enumerate(self.layers[layerIndex]):
+                    # calculates the cost between expected activation and current actiavtions
                     expectedVal = betterLayer[r]
                     cost = HelperFuntion.calcCostVal(val, expectedVal)
+
+                    # if use the user chooses, will create a factor of 1 / amount of nodes in layer to avoid overshooting the root of the individual cost of each node
                     weightSignifigance = (
                         1 / len(self.weights[layerIndex - 1][r])
                         if useBasicWeightSignifigance
                         else 1
                     )
 
+                    # applies the wieght signifigance to the change
                     maxChange = (
-                        (
-                            (HelperFuntion.calcChange(cost, weightSignifigance))
-                            / (sum(self.layers[layerIndex - 1]) + 0.001)
-                        )
-                        if self.layers[layerIndex - 1] != 0
-                        else 0
-                    )  # normalizes cost by dividing by the sum (or abs?)
+                        # calculates change with newtons method i.e. function/derivative and normalizes the cost with the sum of activations in the previous layer
+                        (HelperFuntion.calcChange(cost, weightSignifigance))
+                        / (
+                            sum(self.layers[layerIndex - 1]) + 0.000000001
+                        )  # prevents division by 0
+                    )
 
+                    # loops through all weigths connected to the current node from the previous layer
                     for c, weight in enumerate(self.weights[layerIndex - 1][r]):
+                        # gets the contribuiotn of the activation from the previous layer to the current node
                         outputContribution = weight * self.layers[layerIndex - 1][c]
-                        changeAdjustmentFactor = (
-                            HelperFuntion.calcSpecificWeightErrorContribution(
-                                outputContribution, expectedVal
-                            )
+
+                        # if the contribution was very close the expected value the change adjustment factor will aproach 0
+                        # if it is far it will aproach 1
+                        postiveReinforcement = HelperFuntion.positiveContribution(
+                            outputContribution, expectedVal
                         )
-                        change = maxChange * changeAdjustmentFactor * agression
+
+                        # if the contribution was very close the error the change adjustment factor will aproach 1
+                        # if it is far it will aproach 0
+                        negativeReinforcement = HelperFuntion.negativeContribution(
+                            outputContribution, val
+                        )
+                        # make the above statement true
+                        negativeReinforcement = 1 - negativeReinforcement
+
+                        # calculates over all change based on all factors
+                        if not test:
+                            negativeReinforcement = 1
+
+                        change = (
+                            maxChange
+                            * postiveReinforcement
+                            * negativeReinforcement
+                            * agression
+                        )
+
+                        # applies change to weight
                         self.weights[layerIndex - 1][r, c] = weight - change
 
+                # with all weight updated this calculates what a better previous layer would look like
                 reversedWeights = self.weights[layerIndex - 1].inverse()
-                betterLayer = self.activation(reversedWeights * betterLayer)
+
+                betterLayer = reversedWeights * betterLayer
 
     def train(
         self,
@@ -155,6 +203,7 @@ class Network:
         progressBar: bool = False,  # whether or not to use a progress bar when training
         useBasicWeightSignifigance: bool = False,  # this is used for back prop to limit the amount a weight can be changed based on how many nodes there are
         agression: float = 1,
+        test=None,
     ):
         layers = len(self.layers)
         accuracy = 0
@@ -173,7 +222,7 @@ class Network:
             self.run(input, logToFile=logToFile)
 
             # back propigation using for loop
-            self.backProp(expectedOutput, useBasicWeightSignifigance, agression)
+            self.backProp(expectedOutput, useBasicWeightSignifigance, agression, test)
 
             accuracy = Tested.calcAccuracy(self.layers[layers - 1], expectedOutput)
             if progressBar:
