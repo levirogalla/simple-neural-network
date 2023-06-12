@@ -22,7 +22,7 @@ class HelperFuntion:
 
     def negativeContribution(outputContribution, output) -> float:
         percentContribution = outputContribution - output
-        adjustmentFactor = 1 / ((percentContribution**2) + 1)
+        adjustmentFactor = (1 / ((percentContribution**2) + 1)) + 1
         return adjustmentFactor
 
     def calcChange(cost: dict, multipliers: float = 1) -> float:
@@ -171,7 +171,7 @@ class Network:
                             outputContribution, val
                         )
                         # make the above statement true
-                        negativeReinforcement = 1 - negativeReinforcement
+                        # negativeReinforcement = 1 - negativeReinforcement
 
                         # calculates over all change based on all factors
                         if not test:
@@ -179,8 +179,8 @@ class Network:
 
                         change = (
                             maxChange
-                            * postiveReinforcement
-                            * negativeReinforcement
+                            * (postiveReinforcement)
+                            * (negativeReinforcement)
                             * agression
                         )
 

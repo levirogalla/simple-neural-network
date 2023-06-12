@@ -7,7 +7,7 @@ from Python_Linear_Algebra.main import Matrix, Vector
 from tqdm import tqdm
 from setup import TRAIN
 
-# x = nnv2((1, 2, 1), 10, "relu")
+# x = nnv2((1, 10, 1), 10, "leakyrelu")
 
 # x.train(
 #     TRAIN,
@@ -37,7 +37,7 @@ from setup import TRAIN
 
 
 def Test():
-    TESTS = 100
+    TESTS = 1000
 
     accuracyTotalA = 0
     trainingTimeTotalA = 0

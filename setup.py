@@ -114,7 +114,7 @@ def createData(
     return data
 
 
-TRAIN = createData((1000, 1100), 150, 1, shuffleData=True)
+TRAIN = createData((1, 10), 100, 1, shuffleData=True)
 
 # def createData(iterations, repeats, shuffle=True):
 #     data = []
