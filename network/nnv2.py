@@ -1,4 +1,4 @@
-from Python_Linear_Algebra.main import Matrix, Vector
+from pylinalg import Matrix, Vector
 from setup import MAXAGRESSION
 from network.helper.functions import Activation, Tested
 from tqdm import tqdm
@@ -174,12 +174,10 @@ class Network:
                         # negativeReinforcement = 1 - negativeReinforcement
 
                         # calculates over all change based on all factors
-                        if not test:
-                            negativeReinforcement = 1
 
                         change = (
                             maxChange
-                            * (postiveReinforcement)
+                            * (postiveReinforcement**0.1)
                             * (negativeReinforcement)
                             * agression
                         )
@@ -189,6 +187,8 @@ class Network:
 
                 # with all weight updated this calculates what a better previous layer would look like
                 reversedWeights = self.weights[layerIndex - 1].inverse()
+
+                # should the inverse activation funtion be used here?
 
                 betterLayer = reversedWeights * betterLayer
 

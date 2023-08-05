@@ -1,4 +1,4 @@
-from Python_Linear_Algebra.main import Matrix, Vector
+from pylinalg import Matrix, Vector
 from setup import MAXAGRESSION
 import random, math
 
@@ -40,8 +40,14 @@ class Activation:
     def sigmoid(activation: Vector) -> Vector:
         newActivation = []
         for val in activation:
-            newVal = 1 / (1 + math.exp(-val))
-            newActivation.append(newVal)
+            # to avoid making a number to big
+            if val > 500:
+                newActivation.append(1)
+            elif val < -500:
+                newActivation.append(0)
+            else:
+                newVal = 1 / (1 + math.exp(-val))
+                newActivation.append(newVal)
         return Vector(*newActivation)
 
     def sigmoidInverse(activation: Vector) -> Vector:

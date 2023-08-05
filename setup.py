@@ -1,4 +1,4 @@
-from Python_Linear_Algebra.main import Matrix, Vector
+from pylinalg import Matrix, Vector
 import random
 from tqdm import tqdm
 from math import sin
@@ -114,7 +114,7 @@ def createData(
     return data
 
 
-TRAIN = createData((1, 10), 100, 1, shuffleData=True)
+TRAIN = createData((1, 5), 10, 1, shuffleData=True)
 
 # def createData(iterations, repeats, shuffle=True):
 #     data = []

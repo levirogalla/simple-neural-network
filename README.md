@@ -1,11 +1,13 @@
 # Simple neural network
 
-This project provides tools to create a simple neural network. It does not have any biases and uses the relu activation function.
+This project provides functions and classes to create a deep neural network.
 
 ## To use
 
-Import functions from network.py and iterate over layers to train network
+Import either nnv1 or nnv2 from network and pass a tuple defining the network structure as well as the random weight range and activation function.
 
-## In progress
+Call train function to iteratavly update parameters.
 
-Making a class to create, train, and save models of neural networks
+## To Do
+
+Improve documentation.
